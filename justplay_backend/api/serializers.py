@@ -45,7 +45,7 @@ class ActivityImageSerializer(serializers.ModelSerializer):
         model = ActivityImage
         fields = ['id', 'image', 'uploaded_at']
 
-
+ #test Commit
 # --------------------------
 # ACTIVITÉ
 # --------------------------
