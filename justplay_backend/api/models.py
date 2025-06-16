@@ -11,6 +11,7 @@ class User(AbstractUser):
         ('admin', 'Admin'),
     )
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='client')
+    is_member = models.BooleanField(default=False)
 
     def __str__(self):
         return self.username
@@ -56,6 +57,16 @@ class Activity(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
     categories = models.ManyToManyField(Category, blank=True, related_name="activities")
+    member_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    # Si l'activité est réservable via le calendrier JustPlay
+    is_reservable = models.BooleanField(default=True)
+
+    # Informations de contact si ce n'est pas réservable 
+    contact_name = models.CharField(max_length=255, blank=True, null=True)
+    contact_email = models.EmailField(blank=True, null=True)
+    contact_phone = models.CharField(max_length=30, blank=True, null=True)
+    external_form_url = models.URLField(blank=True, null=True)
+
     
 
 
@@ -68,6 +79,16 @@ class Activity(models.Model):
             models.Index(fields=["exploitant"]),
             
         ]
+
+
+# -----------------------------
+# 2.1. MEMBERSHIP
+# -----------------------------
+class Membership(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    start_date = models.DateField(auto_now_add=True)
+    expiry_date = models.DateField()
+    payment_id = models.CharField(max_length=100)  # optionnel
 
 
 # -----------------------------
