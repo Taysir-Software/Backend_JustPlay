@@ -10,7 +10,8 @@ from .views import (
     RegisterView,
     ReviewViewSet, 
     CancellationLogViewSet, 
-    ExploitantProfileViewSet
+    ExploitantProfileViewSet,
+    MembershipViewSet
 )
 
 router = DefaultRouter()
@@ -23,6 +24,7 @@ router.register(r'categories', CategoryViewSet, basename='categories')
 router.register(r'reviews', ReviewViewSet, basename='reviews')
 router.register(r'annulations', CancellationLogViewSet, basename='annulations')
 router.register(r'exploitants-profil', ExploitantProfileViewSet, basename='exploitant-profile')
+router.register(r'memberships', MembershipViewSet, basename='memberships')
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),

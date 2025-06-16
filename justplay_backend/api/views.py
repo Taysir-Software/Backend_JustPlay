@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
-from .models import Activity, ActivityImage, Timeslot, Reservation, Payment , Category, Review, CancellationLog, ExploitantProfile
+from .models import Activity, ActivityImage, Timeslot, Reservation, Payment , Category, Review, CancellationLog, ExploitantProfile, Membership
 from .serializers import (
     ActivitySerializer,
     ActivityImageSerializer,
@@ -15,7 +15,8 @@ from .serializers import (
     RegisterSerializer,
     ReviewSerializer,
     CancellationLogSerializer, 
-    ExploitantProfileSerializer
+    ExploitantProfileSerializer,
+    MembershipSerializer
 )
 from .permissions import (
     IsAdminUser,
@@ -42,6 +43,7 @@ class ActivityViewSet(viewsets.ModelViewSet):
             elif user.role == 'exploitant':
                 return Activity.objects.filter(exploitant_user=user)
         return Activity.objects.filter(is_active=True)  # clients ou anonymes
+    
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -190,4 +192,21 @@ class ExploitantProfileViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         if self.request.user.role != 'exploitant':
             raise PermissionDenied("Seul l’exploitant peut modifier son profil.")
+        serializer.save(user=self.request.user)
+
+# -------------------------
+# ADHÉSIONS (par rôle)
+# -------------------------
+class MembershipViewSet(viewsets.ModelViewSet):
+    queryset = Membership.objects.all()
+    serializer_class = MembershipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'admin':
+            return Membership.objects.all()
+        return Membership.objects.filter(user=user)
+
+    def perform_create(self, serializer):
         serializer.save(user=self.request.user)

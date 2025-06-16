@@ -12,7 +12,7 @@
 
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import User, Activity, ActivityImage, Timeslot, Reservation, Payment, Category, Review, CancellationLog, ExploitantProfile
+from .models import User, Activity, ActivityImage, Timeslot, Reservation, Payment, Category, Review, CancellationLog, ExploitantProfile, Membership
 
 
 # -------------------------
@@ -30,10 +30,22 @@ class UserAdmin(admin.ModelAdmin):
 # -------------------------
 @admin.register(Activity)
 class ActivityAdmin(admin.ModelAdmin):
-    list_display = ['name', 'exploitant', 'is_active']
-    list_filter = ['is_active', 'exploitant']
-    search_fields = ['name', 'exploitant']
+    list_display = ['name', 'exploitant', 'is_active', 'is_reservable']
+    list_filter = ['is_active', 'is_reservable', 'exploitant']
+    search_fields = ['name', 'exploitant', 'contact_name', 'contact_email', 'contact_phone']
     ordering = ['name']
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'description', 'exploitant', 'exploitant_user', 'price', 'member_price', 'average_rating', 'is_active', 'is_reservable')
+        }),
+        ('Contact direct (si non réservable)', {
+            'fields': ('contact_name', 'contact_email', 'contact_phone', 'external_form_url'),
+        }),
+        ('Dates', {
+            'fields': ('created_at', 'updated_at'),
+        }),
+    )
+    readonly_fields = ('created_at', 'updated_at')
 
 
 # -------------------------
@@ -128,6 +140,17 @@ class CancellationLogAdmin(admin.ModelAdmin):
 class ExploitantProfileAdmin(admin.ModelAdmin):
     list_display = ('company_name', 'user', 'contact_phone')
     search_fields = ('company_name', 'user__username')
+
+# -------------------------
+# MembershipAdmin
+# -------------------------
+# from .models import Membership
+@admin.register(Membership)
+class MembershipAdmin(admin.ModelAdmin):
+    list_display = ('user', 'start_date', 'expiry_date')
+    search_fields = ['user__username']
+    list_filter = ( 'start_date', 'expiry_date')
+
 
 # -------------------------
 # CONFIGURATION DU PORTAIL D'ADMINISTRATION
