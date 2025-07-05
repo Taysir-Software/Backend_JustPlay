@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
-from .models import Activity, ActivityImage, Timeslot, Reservation, Payment , Category, Review, CancellationLog, ExploitantProfile, Membership
+from django.utils import timezone
+from .models import Activity, ActivityImage, Timeslot, Reservation, Payment , Category, Review, CancellationLog, ExploitantProfile, Membership, APIKey
 from .serializers import (
     ActivitySerializer,
     ActivityImageSerializer,
@@ -16,7 +17,8 @@ from .serializers import (
     ReviewSerializer,
     CancellationLogSerializer, 
     ExploitantProfileSerializer,
-    MembershipSerializer
+    MembershipSerializer,
+    ExternalReservationWebhookSerializer
 )
 from .permissions import (
     IsAdminUser,
@@ -210,3 +212,62 @@ class MembershipViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+# ------------------------- 
+# CLÉ API (admin seulement)
+# -------------------------
+
+class WebhookReservationView(APIView):
+    permission_classes = []  # Pas d'authentification JWT ici
+
+    def post(self, request):
+        api_key = request.headers.get("X-API-KEY")
+        if not api_key:
+            raise PermissionDenied("Clé API manquante.")
+
+        try:
+            key_obj = APIKey.objects.select_related("user").get(key=api_key)
+            if key_obj.is_expired():
+                raise PermissionDenied("Clé API expirée.")
+        except APIKey.DoesNotExist:
+            raise PermissionDenied("Clé API invalide.")
+
+        serializer = ExternalReservationWebhookSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+
+        # Vérifie que l'exploitant_id correspond bien à la clé
+        if data["exploitant_id"] != key_obj.user.id:
+            raise PermissionDenied("ID utilisateur incorrect pour cette clé API.")
+
+        # Vérifie que l'activité existe et appartient à cet exploitant
+        try:
+            activity = Activity.objects.get(id=data["activity_id"], exploitant_user=key_obj.user)
+        except Activity.DoesNotExist:
+            return Response({"detail": "Activité introuvable ou non autorisée."}, status=404)
+
+        # Crée un créneau si inexistant (même date/heure pour cette activité)
+        timeslot, created = Timeslot.objects.get_or_create(
+            activity=activity,
+            start_time=data["start_time"],
+            end_time=data["end_time"],
+            defaults={"is_booked": True}
+        )
+        if not created and timeslot.is_booked:
+            return Response({"detail": "Ce créneau est déjà réservé."}, status=400)
+
+        timeslot.is_booked = True
+        timeslot.save()
+
+        # Crée une réservation liée à cet exploitant
+        Reservation.objects.create(
+            user=key_obj.user,
+            timeslot=timeslot,
+            status="paid",
+            source="exploitant"
+        )
+
+        return Response({"message": "Réservation reçue avec succès."}, status=201)

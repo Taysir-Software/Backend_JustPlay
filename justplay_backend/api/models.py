@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+import secrets
+from django.utils import timezone
+from datetime import timedelta
 
 # -----------------------------
 # 1. USER MODEL AVEC ROLE
@@ -23,13 +26,33 @@ class User(AbstractUser):
 class ExploitantProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='exploitant_profile')
     company_name = models.CharField(max_length=255)
-    logo = models.ImageField(upload_to='exploitants/logos/', null=True, blank=True)
+    logo = models.ImageField(upload_to='media/exploitants/logos/', null=True, blank=True)
     website = models.URLField(blank=True)
     contact_phone = models.CharField(max_length=30, blank=True)
     description = models.TextField(blank=True)
 
     def __str__(self):
         return self.company_name
+    
+
+class APIKey(models.Model):
+    user = models.OneToOneField('User', on_delete=models.CASCADE, related_name='api_key')
+    key = models.CharField(max_length=64, unique=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    def is_expired(self):
+        return self.expires_at and timezone.now() > self.expires_at
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = secrets.token_hex(32)
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(days=180)  # expire dans 6 mois par défaut
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Clé API de {self.user.username}"
 
 
 

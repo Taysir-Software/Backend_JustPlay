@@ -12,7 +12,7 @@
 
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import User, Activity, ActivityImage, Timeslot, Reservation, Payment, Category, Review, CancellationLog, ExploitantProfile, Membership
+from .models import User, Activity, ActivityImage, Timeslot, Reservation, Payment, Category, Review, CancellationLog, ExploitantProfile, Membership, APIKey
 
 
 # -------------------------
@@ -152,6 +152,24 @@ class MembershipAdmin(admin.ModelAdmin):
     list_filter = ( 'start_date', 'expiry_date')
 
 
+# --------------------------
+# 11. ADMIN API
+# --------------------------
+
+@admin.register(APIKey)
+class APIKeyAdmin(admin.ModelAdmin):
+    list_display = ('key', 'user', 'created_at', 'expires_at')
+    search_fields = ('key', 'user__username')
+    list_filter = ('created_at', 'expires_at')
+
+    def has_add_permission(self, request):
+        # Disable the add permission for API keys
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        # Disable the delete permission for API keys
+        return False
+
 # -------------------------
 # CONFIGURATION DU PORTAIL D'ADMINISTRATION
 # -------------------------
@@ -159,4 +177,6 @@ class MembershipAdmin(admin.ModelAdmin):
 admin.site.site_header = "JustPlay Admin"
 admin.site.site_title = "JustPlay Admin Portal"
 admin.site.index_title = "Bienvenue dans le portail d'administration JustPlay"
+
+
 

@@ -164,3 +164,21 @@ class MembershipSerializer(serializers.ModelSerializer):
     class Meta:
         model = Membership
         fields = ['start_date', 'expiry_date', 'payment_id']
+
+
+# --------------------------
+# SERIALIZER POUR WEBHOOK DE RÉSERVATION EXTERNE
+# --------------------------
+
+class ExternalReservationWebhookSerializer(serializers.Serializer):
+    activity_id = serializers.IntegerField()
+    start_time = serializers.DateTimeField()
+    end_time = serializers.DateTimeField()
+    client_name = serializers.CharField(max_length=255)
+    source = serializers.ChoiceField(choices=['exploitant'])
+    exploitant_id = serializers.IntegerField()
+
+    def validate(self, data):
+        if data['start_time'] >= data['end_time']:
+            raise serializers.ValidationError("L'heure de fin doit être postérieure à l'heure de début.")
+        return data

@@ -11,7 +11,8 @@ from .views import (
     ReviewViewSet, 
     CancellationLogViewSet, 
     ExploitantProfileViewSet,
-    MembershipViewSet
+    MembershipViewSet,
+    WebhookReservationView
 )
 
 router = DefaultRouter()
@@ -26,7 +27,9 @@ router.register(r'annulations', CancellationLogViewSet, basename='annulations')
 router.register(r'exploitants-profil', ExploitantProfileViewSet, basename='exploitant-profile')
 router.register(r'memberships', MembershipViewSet, basename='memberships')
 
+
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('', include(router.urls)),
+    path('webhooks/reservation/', WebhookReservationView.as_view(), name='webhook-reservation'),
 ]
